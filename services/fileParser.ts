@@ -6,8 +6,11 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 
-// Set worker source for PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set worker source for PDF.js v4.x
+// Sử dụng unpkg CDN cho tương thích tốt hơn với Vite
+const pdfWorkerUrl = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+console.log('PDF.js version:', pdfjsLib.version, 'Worker URL:', pdfWorkerUrl);
 
 export type FileType = 'text' | 'pdf' | 'docx' | 'image' | 'unknown';
 
@@ -64,8 +67,26 @@ export const parseTextFile = async (file: File): Promise<string> => {
  */
 export const parsePdfFile = async (file: File): Promise<string> => {
     try {
+        console.log('Bắt đầu đọc file PDF:', file.name, 'Size:', file.size, 'bytes');
+
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        console.log('Đã đọc ArrayBuffer, size:', arrayBuffer.byteLength);
+
+        // Tạo Uint8Array từ ArrayBuffer để tương thích tốt hơn
+        const typedArray = new Uint8Array(arrayBuffer);
+
+        // Sử dụng các tùy chọn cấu hình để tăng khả năng tương thích
+        const loadingTask = pdfjsLib.getDocument({
+            data: typedArray,
+            useSystemFonts: true,
+            // Tắt một số tính năng có thể gây lỗi
+            disableFontFace: false,
+            isEvalSupported: false,
+            useWorkerFetch: false,
+        });
+
+        const pdf = await loadingTask.promise;
+        console.log('PDF loaded, số trang:', pdf.numPages);
 
         let fullText = '';
 
@@ -73,15 +94,36 @@ export const parsePdfFile = async (file: File): Promise<string> => {
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
             const pageText = textContent.items
-                .map((item: any) => item.str)
+                .map((item: any) => item.str || '')
                 .join(' ');
             fullText += pageText + '\n\n';
+            console.log(`Đã đọc trang ${i}/${pdf.numPages}`);
         }
 
-        return fullText.trim();
-    } catch (error) {
-        console.error('Lỗi đọc PDF:', error);
-        throw new Error('Không thể đọc file PDF. Vui lòng thử file khác.');
+        const result = fullText.trim();
+        console.log('Tổng text trích xuất:', result.length, 'ký tự');
+
+        if (result.length === 0) {
+            console.warn('Không tìm thấy text trong PDF. File có thể là ảnh scan.');
+        }
+
+        return result;
+    } catch (error: any) {
+        console.error('Lỗi đọc PDF chi tiết:', error);
+        console.error('Error name:', error?.name);
+        console.error('Error message:', error?.message);
+        console.error('Error stack:', error?.stack);
+
+        // Thông báo lỗi cụ thể hơn
+        if (error?.message?.includes('Invalid PDF')) {
+            throw new Error('File PDF không hợp lệ hoặc bị hỏng.');
+        } else if (error?.message?.includes('password')) {
+            throw new Error('File PDF được bảo vệ bằng mật khẩu.');
+        } else if (error?.message?.includes('worker')) {
+            throw new Error('Lỗi tải PDF worker. Vui lòng thử lại sau.');
+        }
+
+        throw new Error(`Không thể đọc file PDF: ${error?.message || 'Lỗi không xác định'}`);
     }
 };
 

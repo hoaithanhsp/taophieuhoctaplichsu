@@ -286,22 +286,25 @@ const App: React.FC = () => {
     );
 
     const renderEditor = () => (
-        <div className="p-6 md:p-12 pt-28 pb-12">
+        <div className="p-6 md:p-12 pt-24 pb-12 min-h-screen">
             <div className="max-w-6xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-                    <div>
-                        <h2 className="text-3xl font-bold text-[#D4AF37] flex items-center gap-3" style={{ fontFamily: "'Playfair Display', serif" }}>
-                            <Edit3 className="w-8 h-8" />
-                            Xem Trước Dữ Liệu
-                        </h2>
-                        <p className="text-[#8B7355] mt-1">Kiểm tra nội dung đã được AI phân tích</p>
+                {/* Sticky header with title and button */}
+                <div className="sticky top-16 z-30 bg-[#1A1510]/95 backdrop-blur-md py-4 -mx-6 px-6 md:-mx-12 md:px-12 mb-6 border-b border-[#3D3428]/50">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 className="text-2xl md:text-3xl font-bold text-[#D4AF37] flex items-center gap-3" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                <Edit3 className="w-6 h-6 md:w-8 md:h-8" />
+                                Xem Trước Dữ Liệu
+                            </h2>
+                            <p className="text-[#8B7355] mt-1 text-sm">Kiểm tra nội dung đã được AI phân tích</p>
+                        </div>
+                        <button
+                            onClick={() => setScreen('MENU')}
+                            className="px-6 py-3 bg-gradient-to-r from-[#2E8B57] to-[#1E5631] hover:from-[#1E5631] hover:to-[#2E8B57] text-white font-bold rounded-xl flex items-center gap-2 transition-all shadow-lg uppercase tracking-wider text-sm shrink-0"
+                        >
+                            Chọn Game <Play className="w-4 h-4" />
+                        </button>
                     </div>
-                    <button
-                        onClick={() => setScreen('MENU')}
-                        className="px-8 py-3 bg-gradient-to-r from-[#2E8B57] to-[#1E5631] hover:from-[#1E5631] hover:to-[#2E8B57] text-white font-bold rounded-xl flex items-center gap-2 transition-all shadow-lg uppercase tracking-wider text-sm"
-                    >
-                        Chọn Game <Play className="w-4 h-4" />
-                    </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -313,7 +316,7 @@ const App: React.FC = () => {
                             </h3>
                             <span className="badge-historical">{parsedData?.events.length}</span>
                         </div>
-                        <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
+                        <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                             {parsedData?.events.map((e, i) => (
                                 <div key={i} className="p-3 bg-[#1A1510] border border-[#3D3428] rounded-lg flex justify-between items-center hover:border-[#D4AF37]/30 transition-colors">
                                     <span className="font-bold text-[#D4AF37] text-lg" style={{ fontFamily: "'Cinzel', serif" }}>{e.year}</span>
@@ -333,7 +336,7 @@ const App: React.FC = () => {
                                 {parsedData?.questions.length}
                             </span>
                         </div>
-                        <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
+                        <div className="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                             {parsedData?.questions.map((q, i) => (
                                 <div key={i} className="p-3 bg-[#1A1510] border border-[#3D3428] rounded-lg hover:border-[#2E8B57]/30 transition-colors">
                                     <p className="text-[#F5F0E1] text-sm">{q.question}</p>
@@ -352,7 +355,7 @@ const App: React.FC = () => {
                                 {parsedData?.characters.length}
                             </span>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
                             {parsedData?.characters.map((c, i) => (
                                 <div key={i} className="p-4 bg-[#1A1510] border border-[#3D3428] rounded-lg hover:border-[#722F37]/30 transition-colors">
                                     <span className="font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>{c.name}</span>
@@ -582,58 +585,7 @@ const App: React.FC = () => {
                 {screen === 'RESULT' && renderResult()}
             </main>
 
-            {/* Footer Promotion */}
-            {screen !== 'PLAYING' && (
-                <footer className="bg-[#0F0D0A] text-[#8B7355] py-10 px-4 mt-auto border-t border-[#3D3428] no-print">
-                    <div className="max-w-5xl mx-auto text-center">
-                        {/* Promotional Box */}
-                        <div className="mb-8 p-8 bg-gradient-to-r from-[#2A2318] via-[#1A1510] to-[#2A2318] rounded-2xl border border-[#D4AF37]/20 relative overflow-hidden">
-                            {/* Gold accents */}
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent"></div>
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent"></div>
 
-                            <p className="font-bold text-xl md:text-2xl text-[#F5F0E1] mb-3 leading-relaxed" style={{ fontFamily: "'Playfair Display', serif" }}>
-                                ĐĂNG KÝ KHOÁ HỌC THỰC CHIẾN
-                            </p>
-                            <p className="text-[#D4AF37] text-lg mb-4" style={{ fontFamily: "'Lora', Georgia, serif" }}>
-                                Viết SKKN • Tạo App Dạy Học • Mô Phỏng Trực Quan
-                            </p>
-                            <p className="text-[#8B7355] text-sm mb-6 italic">Chỉ với 1 câu lệnh AI</p>
-
-                            <a
-                                href="https://forms.gle/19fbZmmHW5rEtxxG7"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#D4AF37] text-[#1A1510] font-bold rounded-full transition-all transform hover:-translate-y-1 shadow-lg shadow-[#D4AF37]/30 uppercase tracking-wider"
-                            >
-                                <Crown className="w-5 h-5" />
-                                Đăng Ký Ngay
-                            </a>
-                        </div>
-
-                        {/* Contact Info */}
-                        <div className="space-y-3 text-sm">
-                            <p className="font-medium text-[#6B5C45] uppercase tracking-wider text-xs">Liên hệ tư vấn</p>
-                            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
-                                <a
-                                    href="https://www.facebook.com/tranhoaithanhvicko/"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="hover:text-[#D4AF37] transition-colors duration-200 flex items-center gap-2"
-                                >
-                                    <span className="text-[#D4AF37]">📘</span>
-                                    <span className="font-semibold">Facebook:</span> tranhoaithanhvicko
-                                </a>
-                                <div className="hidden md:block w-1 h-1 rounded-full bg-[#3D3428]"></div>
-                                <span className="flex items-center gap-2">
-                                    <span className="text-[#2E8B57]">📱</span>
-                                    <span className="font-semibold">Zalo:</span> 0348296773
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </footer>
-            )}
         </div>
     );
 };

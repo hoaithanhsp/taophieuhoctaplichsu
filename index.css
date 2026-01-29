@@ -394,6 +394,33 @@ h6 {
   color: var(--color-dark-bg);
 }
 
+/* Custom scrollbar for content areas */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gold-dark) var(--color-dark-card);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--color-dark-card);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg,
+      var(--color-gold-dark) 0%,
+      var(--color-gold) 50%,
+      var(--color-gold-dark) 100%);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
 /* Print styles */
 @media print {
   .no-print {
