@@ -1,0 +1,555 @@
+/* ========================================
+   GAME LỊCH SỬ - VINTAGE HISTORICAL THEME
+   Phong cách: Cổ điển, trang trọng, bắt mắt
+   ======================================== */
+
+/* Google Fonts - Playfair Display cho tiêu đề, Lora cho nội dung */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Cinzel:wght@400;500;600;700&display=swap');
+
+/* CSS Variables - Theme Lịch Sử */
+:root {
+  /* Màu chính - Tông vàng đồng và đỏ thẫm */
+  --color-gold: #D4AF37;
+  --color-gold-dark: #B8860B;
+  --color-gold-light: #F4E5B1;
+  --color-burgundy: #722F37;
+  --color-burgundy-dark: #4A1F24;
+  --color-burgundy-light: #9B3D47;
+  
+  /* Màu nền - Tông sepia cổ điển */
+  --color-parchment: #F5F0E1;
+  --color-parchment-dark: #E8DCC8;
+  --color-sepia: #704214;
+  --color-sepia-light: #8B5A2B;
+  
+  /* Màu tối - Cho dark mode */
+  --color-dark-bg: #1A1510;
+  --color-dark-card: #2A2318;
+  --color-dark-border: #3D3428;
+  
+  /* Màu accent */
+  --color-emerald: #2E8B57;
+  --color-navy: #1E3A5F;
+  --color-copper: #B87333;
+  
+  /* Typography */
+  --font-display: 'Cinzel', 'Playfair Display', serif;
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-body: 'Lora', Georgia, serif;
+  
+  /* Shadows */
+  --shadow-vintage: 0 4px 20px rgba(112, 66, 20, 0.25);
+  --shadow-gold: 0 0 30px rgba(212, 175, 55, 0.3);
+  --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-dark-bg);
+  color: var(--color-parchment);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Decorative Background Pattern */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30L30 0z' fill='none' stroke='%23D4AF37' stroke-opacity='0.03' stroke-width='1'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.display-title {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Historical Glass Card */
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(42, 35, 24, 0.9) 0%,
+    rgba(26, 21, 16, 0.95) 100%
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-dark-border);
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  border-left: 1px solid rgba(212, 175, 55, 0.1);
+  box-shadow: var(--shadow-card);
+  position: relative;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-gold) 50%,
+    transparent 100%
+  );
+}
+
+/* Vintage Glass Effect for Light Elements */
+.glass {
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 55, 0.05) 0%,
+    rgba(184, 134, 11, 0.08) 100%
+  );
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Ornamental Divider */
+.ornamental-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.ornamental-divider::before,
+.ornamental-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-gold) 50%,
+    transparent 100%
+  );
+}
+
+.ornamental-divider span {
+  color: var(--color-gold);
+  font-size: 1.5rem;
+}
+
+/* Historical Buttons */
+.btn-historical {
+  font-family: var(--font-body);
+  font-weight: 600;
+  padding: 0.875rem 2rem;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.875rem;
+}
+
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--color-gold) 0%,
+    var(--color-gold-dark) 100%
+  );
+  color: var(--color-dark-bg);
+  border: none;
+  box-shadow: 
+    0 4px 15px rgba(212, 175, 55, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 25px rgba(212, 175, 55, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-gold);
+  border: 2px solid var(--color-gold);
+}
+
+.btn-secondary:hover {
+  background: rgba(212, 175, 55, 0.1);
+  box-shadow: var(--shadow-gold);
+}
+
+/* Game Cards with Historical Theme */
+.game-card {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.game-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 55, 0.3) 0%,
+    transparent 50%,
+    rgba(212, 175, 55, 0.1) 100%
+  ) border-box;
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) padding-box, 
+    linear-gradient(#fff 0 0);
+  mask: 
+    linear-gradient(#fff 0 0) padding-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.game-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(212, 175, 55, 0.2);
+}
+
+/* Historical Progress Bar */
+.progress-historical {
+  background: var(--color-dark-card);
+  border: 1px solid var(--color-dark-border);
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-historical::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 18px;
+  background: linear-gradient(
+    90deg,
+    var(--color-gold-dark) 0%,
+    var(--color-gold) 50%,
+    var(--color-gold-light) 100%
+  );
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+}
+
+/* Historical Input Fields */
+.input-historical {
+  background: rgba(42, 35, 24, 0.8);
+  border: 1px solid var(--color-dark-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  color: var(--color-parchment);
+  font-family: var(--font-body);
+  transition: all 0.3s ease;
+}
+
+.input-historical:focus {
+  outline: none;
+  border-color: var(--color-gold);
+  box-shadow: 
+    0 0 0 3px rgba(212, 175, 55, 0.1),
+    var(--shadow-gold);
+}
+
+.input-historical::placeholder {
+  color: rgba(245, 240, 225, 0.4);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes pulse-gold {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.6);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 175, 55, 0.3) 50%,
+    transparent 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-dark-bg);
+  border-left: 1px solid var(--color-dark-border);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    var(--color-gold-dark) 0%,
+    var(--color-gold) 50%,
+    var(--color-gold-dark) 100%
+  );
+  border-radius: 10px;
+  border: 2px solid var(--color-dark-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+/* Selection */
+::selection {
+  background: var(--color-gold);
+  color: var(--color-dark-bg);
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px;
+  }
+  
+  .glass-card {
+    border-radius: 12px;
+  }
+}
+
+/* Historical Badge/Tag */
+.badge-historical {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 55, 0.15) 0%,
+    rgba(184, 134, 11, 0.2) 100%
+  );
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-gold);
+}
+
+/* Historical Quote Box */
+.quote-box {
+  position: relative;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(
+    135deg,
+    rgba(42, 35, 24, 0.6) 0%,
+    rgba(26, 21, 16, 0.8) 100%
+  );
+  border-left: 4px solid var(--color-gold);
+  font-style: italic;
+  font-family: var(--font-heading);
+}
+
+.quote-box::before {
+  content: '"';
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  font-size: 4rem;
+  color: var(--color-gold);
+  opacity: 0.3;
+  font-family: var(--font-display);
+}
+
+/* Historical Timeline Connector */
+.timeline-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  border: 3px solid var(--color-dark-bg);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+}
+
+.timeline-line {
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--color-gold) 0%,
+    var(--color-gold-dark) 100%
+  );
+}
+
+/* Menu option style for games */
+.game-option {
+  position: relative;
+  overflow: hidden;
+}
+
+.game-option::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-gold) 50%,
+    transparent 100%
+  );
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.game-option:hover::after {
+  transform: scaleX(1);
+}
+
+/* Coin/Score display */
+.score-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(
+    135deg,
+    rgba(212, 175, 55, 0.1) 0%,
+    rgba(184, 134, 11, 0.15) 100%
+  );
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 30px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-gold);
+}
+
+.score-display .coin-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--color-gold) 0%,
+    var(--color-gold-dark) 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-dark-bg);
+  font-size: 0.75rem;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
+}
+
+/* Decorative corners for cards */
+.corner-decoration {
+  position: relative;
+}
+
+.corner-decoration::before,
+.corner-decoration::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--color-gold);
+  opacity: 0.5;
+}
+
+.corner-decoration::before {
+  top: -5px;
+  left: -5px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner-decoration::after {
+  bottom: -5px;
+  right: -5px;
+  border-left: none;
+  border-top: none;
+}

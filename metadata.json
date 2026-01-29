@@ -1,0 +1,7 @@
+{
+  "name": "Phiếu Học Tập Game Hóa",
+  "description": "Biến tài liệu học tập thành 5 loại game tương tác hấp dẫn sử dụng AI.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
