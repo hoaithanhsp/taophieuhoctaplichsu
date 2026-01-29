@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
     FileText, Upload, Settings, Play, Share2, Award,
-    ArrowLeft, Edit3, Clock, Zap, Puzzle, User, Scroll, Crown, BookOpen, Sparkles
+    ArrowLeft, Edit3, Clock, Zap, Puzzle, User, Scroll, Crown, BookOpen, Sparkles, Image, FileType
 } from 'lucide-react';
-import { parseContentWithGemini, getStoredApiKey, setStoredApiKey, getStoredModel, setStoredModel } from './services/geminiService';
+import { parseContentWithGemini, parseImageWithGemini, getStoredApiKey, setStoredApiKey, getStoredModel, setStoredModel } from './services/geminiService';
+import { parseFile, getFileAcceptString, getSupportedFormats } from './services/fileParser';
 import { ParsedData, GameConfig, ScreenState, GameType } from './types';
 import MatchGame from './components/MatchGame';
 import TimelineGame from './components/TimelineGame';
@@ -22,6 +23,7 @@ const App: React.FC = () => {
     const [fileContent, setFileContent] = useState<string>('');
     const [parsedData, setParsedData] = useState<ParsedData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [loadingMessage, setLoadingMessage] = useState('');
     const [error, setError] = useState('');
 
     const [selectedGame, setSelectedGame] = useState<GameType | null>(null);
@@ -67,11 +69,29 @@ const App: React.FC = () => {
         setLoading(true);
         setScreen('UPLOAD');
         setError('');
+        setLoadingMessage(`Đang đọc file: ${file.name}...`);
 
         try {
-            const text = await file.text();
-            setFileContent(text);
-            const data = await parseContentWithGemini(text);
+            // Parse file dựa trên loại
+            const parsedFile = await parseFile(file);
+
+            let data: ParsedData;
+
+            if (parsedFile.type === 'image') {
+                // Phân tích ảnh bằng Gemini Vision
+                setLoadingMessage('Đang phân tích hình ảnh với AI...');
+                if (!parsedFile.imageBase64 || !parsedFile.imageMimeType) {
+                    throw new Error('Không thể đọc dữ liệu ảnh');
+                }
+                data = await parseImageWithGemini(parsedFile.imageBase64, parsedFile.imageMimeType);
+            } else {
+                // Phân tích text (từ txt, pdf, docx)
+                setLoadingMessage('Đang phân tích nội dung với AI...');
+                const text = parsedFile.text || '';
+                setFileContent(text);
+                data = await parseContentWithGemini(text);
+            }
+
             setParsedData(data);
             setScreen('EDITOR');
         } catch (err) {
@@ -80,11 +100,12 @@ const App: React.FC = () => {
             if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
                 setError(`Lỗi API: ${errorMessage}. Vui lòng đổi API Key hoặc thử lại sau.`);
             } else {
-                setError("Không thể đọc file hoặc lỗi phân tích AI. Vui lòng thử file .txt hoặc copy paste.");
+                setError(`Lỗi: ${errorMessage}`);
             }
             setScreen('WELCOME');
         } finally {
             setLoading(false);
+            setLoadingMessage('');
         }
     };
 
@@ -135,7 +156,7 @@ const App: React.FC = () => {
 
     // Render Screens
     const renderWelcome = () => (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center space-y-8 animate-fade-in pt-24 relative">
+        <div className="flex flex-col items-center justify-start p-4 text-center space-y-8 animate-fade-in pt-28 pb-12 relative">
             {/* Decorative Background Elements */}
             <div className="absolute top-20 left-10 w-32 h-32 border border-[#D4AF37]/20 rotate-45 pointer-events-none"></div>
             <div className="absolute bottom-20 right-10 w-24 h-24 border border-[#D4AF37]/20 rotate-12 pointer-events-none"></div>
@@ -196,15 +217,28 @@ const App: React.FC = () => {
                 <p className="text-[#8B7355] text-sm mb-6">Tải lên tài liệu hoặc dán nội dung bài học</p>
 
                 <div className="flex flex-col gap-4">
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#D4AF37]/30 rounded-2xl cursor-pointer hover:bg-[#D4AF37]/5 transition-all duration-300 group">
+                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-[#D4AF37]/30 rounded-2xl cursor-pointer hover:bg-[#D4AF37]/5 transition-all duration-300 group">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <div className="w-12 h-12 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mb-2 group-hover:bg-[#D4AF37]/20 transition-colors">
+                            <div className="w-12 h-12 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mb-3 group-hover:bg-[#D4AF37]/20 transition-colors">
                                 <Upload className="w-6 h-6 text-[#D4AF37]" />
                             </div>
-                            <p className="text-[#8B7355] text-sm">Click để tải lên tài liệu</p>
-                            <p className="text-[#6B5C45] text-xs mt-1">Hỗ trợ: .txt, .md, .json</p>
+                            <p className="text-[#8B7355] text-sm font-medium">Click để tải lên tài liệu</p>
+                            <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+                                <span className="px-2 py-1 bg-[#2A2318] text-[#D4AF37] text-xs rounded-full border border-[#D4AF37]/30 flex items-center gap-1">
+                                    <FileType className="w-3 h-3" /> PDF
+                                </span>
+                                <span className="px-2 py-1 bg-[#2A2318] text-[#2E8B57] text-xs rounded-full border border-[#2E8B57]/30 flex items-center gap-1">
+                                    <FileText className="w-3 h-3" /> Word
+                                </span>
+                                <span className="px-2 py-1 bg-[#2A2318] text-[#5D3A8C] text-xs rounded-full border border-[#5D3A8C]/30 flex items-center gap-1">
+                                    <Image className="w-3 h-3" /> Ảnh
+                                </span>
+                                <span className="px-2 py-1 bg-[#2A2318] text-[#6B5C45] text-xs rounded-full border border-[#3D3428]">
+                                    TXT
+                                </span>
+                            </div>
                         </div>
-                        <input type="file" className="hidden" onChange={handleFileUpload} accept=".txt,.json,.md" />
+                        <input type="file" className="hidden" onChange={handleFileUpload} accept={getFileAcceptString()} />
                     </label>
 
                     {/* Divider */}
@@ -252,7 +286,7 @@ const App: React.FC = () => {
     );
 
     const renderEditor = () => (
-        <div className="min-h-screen p-6 md:p-12 pt-24">
+        <div className="p-6 md:p-12 pt-28 pb-12">
             <div className="max-w-6xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                     <div>
@@ -333,7 +367,7 @@ const App: React.FC = () => {
     );
 
     const renderMenu = () => (
-        <div className="min-h-screen p-6 flex flex-col items-center justify-center pt-24">
+        <div className="p-6 flex flex-col items-center justify-start pt-28 pb-12">
             <div className="text-center mb-12">
                 <h2 className="text-4xl md:text-5xl font-bold text-[#D4AF37] mb-4" style={{ fontFamily: "'Cinzel', 'Playfair Display', serif" }}>
                     Chọn Thử Thách
@@ -466,7 +500,7 @@ const App: React.FC = () => {
     };
 
     const renderResult = () => (
-        <div className="min-h-screen flex flex-col items-center justify-center p-4 pt-24">
+        <div className="flex flex-col items-center justify-center p-4 pt-28 pb-12">
             <div className="glass-card p-12 rounded-3xl text-center max-w-lg w-full relative overflow-hidden">
                 {/* Gold accent */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent"></div>
@@ -509,7 +543,7 @@ const App: React.FC = () => {
     )
 
     return (
-        <div className="min-h-screen bg-[#1A1510] text-[#F5F0E1] flex flex-col" style={{ fontFamily: "'Lora', Georgia, serif" }}>
+        <div className="flex-1 bg-[#1A1510] text-[#F5F0E1] flex flex-col overflow-y-auto" style={{ fontFamily: "'Lora', Georgia, serif" }}>
             {/* Header */}
             {screen !== 'PLAYING' && (
                 <Header
@@ -536,7 +570,9 @@ const App: React.FC = () => {
                             <div className="w-20 h-20 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></div>
                             <Scroll className="w-8 h-8 text-[#D4AF37] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                         </div>
-                        <p className="text-[#D4AF37] text-lg mt-6" style={{ fontFamily: "'Playfair Display', serif" }}>Đang phân tích tài liệu...</p>
+                        <p className="text-[#D4AF37] text-lg mt-6" style={{ fontFamily: "'Playfair Display', serif" }}>
+                            {loadingMessage || 'Đang phân tích tài liệu...'}
+                        </p>
                         <p className="text-[#6B5C45] text-sm mt-2">AI đang trích xuất dữ liệu lịch sử</p>
                     </div>
                 )}
