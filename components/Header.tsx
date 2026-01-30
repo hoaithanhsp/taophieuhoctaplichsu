@@ -22,7 +22,8 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick, hasApiKey }) => {
                         >
                             Game Lịch Sử
                         </h1>
-                        <p className="text-xs text-[#6B5C45] hidden sm:block">Học qua Trải nghiệm</p>
+                        <p className="text-xs text-[#8B7355] hidden sm:block">Tác giả: Lê Thị Nga</p>
+                        <p className="text-xs text-[#6B5C45] hidden sm:block">Đơn vị: Trường THCS Thanh Đình</p>
                     </div>
                 </div>
 
