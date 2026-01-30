@@ -68,7 +68,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-track-[#2A2318] scrollbar-thumb-[#D4AF37]/50 hover:scrollbar-thumb-[#D4AF37]">
           {/* Model Selection */}
           <div>
             <label className="block text-sm font-medium text-[#8B7355] mb-3 uppercase tracking-wider text-xs">
