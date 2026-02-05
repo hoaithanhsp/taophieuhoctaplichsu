@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Settings, Key, ExternalLink, X, Sparkles, CheckCircle, Crown, Scroll } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Key, ExternalLink, X, CheckCircle, Crown, Scroll, AlertCircle } from 'lucide-react';
 
 // Model definitions
 export const AI_MODELS = [
@@ -25,13 +25,43 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
 }) => {
   const [apiKey, setApiKey] = useState(currentApiKey);
   const [selectedModel, setSelectedModel] = useState(currentModel);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Đồng bộ state khi props thay đổi (ví dụ: khi load từ localStorage)
+  useEffect(() => {
+    setApiKey(currentApiKey);
+  }, [currentApiKey]);
+
+  useEffect(() => {
+    setSelectedModel(currentModel);
+  }, [currentModel]);
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    if (apiKey.trim()) {
+    if (!apiKey.trim()) {
+      setErrorMessage('Vui lòng nhập API Key');
+      setSaveStatus('error');
+      return;
+    }
+
+    setSaveStatus('saving');
+    setErrorMessage('');
+
+    try {
       onSave(apiKey.trim(), selectedModel);
-      onClose();
+      setSaveStatus('success');
+
+      // Hiển thị thông báo thành công trong 1.5s rồi đóng modal
+      setTimeout(() => {
+        setSaveStatus('idle');
+        onClose();
+      }, 1500);
+    } catch (err) {
+      console.error('Error saving API key:', err);
+      setErrorMessage('Không thể lưu cài đặt. Vui lòng thử lại.');
+      setSaveStatus('error');
     }
   };
 
@@ -80,8 +110,8 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                   key={model.id}
                   onClick={() => setSelectedModel(model.id)}
                   className={`p-4 rounded-xl border-2 text-left transition-all flex items-center justify-between ${selectedModel === model.id
-                      ? 'border-[#D4AF37] bg-[#D4AF37]/10'
-                      : 'border-[#3D3428] hover:border-[#6B5C45] bg-[#2A2318]'
+                    ? 'border-[#D4AF37] bg-[#D4AF37]/10'
+                    : 'border-[#3D3428] hover:border-[#6B5C45] bg-[#2A2318]'
                     }`}
                 >
                   <div className="flex items-center gap-3">
@@ -150,14 +180,44 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-[#3D3428]">
+        <div className="p-6 border-t border-[#3D3428] space-y-3">
+          {/* Error message */}
+          {saveStatus === 'error' && errorMessage && (
+            <div className="flex items-center gap-2 p-3 bg-[#722F37]/20 border border-[#722F37]/50 rounded-xl">
+              <AlertCircle className="w-4 h-4 text-[#E8A9A9]" />
+              <span className="text-[#E8A9A9] text-sm">{errorMessage}</span>
+            </div>
+          )}
+
+          {/* Success message */}
+          {saveStatus === 'success' && (
+            <div className="flex items-center gap-2 p-3 bg-[#2E8B57]/20 border border-[#2E8B57]/50 rounded-xl">
+              <CheckCircle className="w-4 h-4 text-[#5FD89E]" />
+              <span className="text-[#5FD89E] text-sm">Đã lưu cài đặt thành công!</span>
+            </div>
+          )}
+
           <button
             onClick={handleSave}
-            disabled={!apiKey.trim()}
+            disabled={!apiKey.trim() || saveStatus === 'saving' || saveStatus === 'success'}
             className="w-full py-3 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#D4AF37] disabled:from-[#3D3428] disabled:to-[#2A2318] disabled:cursor-not-allowed text-[#1A1510] disabled:text-[#6B5C45] font-bold rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-wider text-sm shadow-lg shadow-[#D4AF37]/20"
           >
-            <Crown className="w-5 h-5" />
-            Lưu Cài Đặt
+            {saveStatus === 'saving' ? (
+              <>
+                <div className="w-5 h-5 border-2 border-[#1A1510] border-t-transparent rounded-full animate-spin"></div>
+                Đang lưu...
+              </>
+            ) : saveStatus === 'success' ? (
+              <>
+                <CheckCircle className="w-5 h-5" />
+                Đã lưu!
+              </>
+            ) : (
+              <>
+                <Crown className="w-5 h-5" />
+                Lưu Cài Đặt
+              </>
+            )}
           </button>
         </div>
       </div>

@@ -82,6 +82,19 @@ Yêu cầu output JSON:
 4. title: Tiêu đề ngắn gọn cho nội dung.
 `;
 
+// Timeout wrapper để tránh request bị treo quá lâu
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`Request timeout sau ${timeoutMs / 1000}s`)), timeoutMs)
+    )
+  ]);
+};
+
+// Thời gian timeout cho mỗi request (60 giây)
+const REQUEST_TIMEOUT = 60000;
+
 // Hàm gọi AI với cơ chế fallback
 const callWithFallback = async (
   apiKey: string,
@@ -100,14 +113,17 @@ const callWithFallback = async (
       console.log(`Đang thử với model: ${model}`);
       const ai = new GoogleGenAI({ apiKey });
 
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: getOutputSchema() as any
-        }
-      });
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: getOutputSchema() as any
+          }
+        }),
+        REQUEST_TIMEOUT
+      );
 
       const text = response.text;
       if (!text) throw new Error("Empty response from AI");
@@ -117,10 +133,16 @@ const callWithFallback = async (
     } catch (error) {
       console.warn(`✗ Model ${model} thất bại:`, error);
       lastError = error as Error;
+
+      // Nếu là lỗi API key không hợp lệ, dừng ngay không thử model khác
+      const errorMsg = (error as Error).message || '';
+      if (errorMsg.includes('API_KEY_INVALID') || errorMsg.includes('API key not valid')) {
+        throw new Error('API Key không hợp lệ. Vui lòng kiểm tra lại API Key của bạn.');
+      }
     }
   }
 
-  throw new Error(`Tất cả models đều thất bại. Lỗi cuối cùng: ${lastError?.message || 'Unknown error'}`);
+  throw new Error(`Tất cả models đều thất bại. Lỗi cuối cùng: ${lastError?.message || 'Unknown error'}`)
 };
 
 // Hàm gọi AI với ảnh (Gemini Vision)
@@ -146,27 +168,30 @@ Hãy đọc và phân tích nội dung lịch sử trong hình ảnh này. Tríc
       console.log(`Đang thử phân tích ảnh với model: ${model}`);
       const ai = new GoogleGenAI({ apiKey });
 
-      const response = await ai.models.generateContent({
-        model,
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: imageMimeType,
-                  data: imageBase64
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model,
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType: imageMimeType,
+                    data: imageBase64
+                  }
                 }
-              }
-            ]
+              ]
+            }
+          ],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: getOutputSchema() as any
           }
-        ],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: getOutputSchema() as any
-        }
-      });
+        }),
+        REQUEST_TIMEOUT
+      );
 
       const text = response.text;
       if (!text) throw new Error("Empty response from AI");
@@ -176,10 +201,16 @@ Hãy đọc và phân tích nội dung lịch sử trong hình ảnh này. Tríc
     } catch (error) {
       console.warn(`✗ Model ${model} thất bại khi phân tích ảnh:`, error);
       lastError = error as Error;
+
+      // Nếu là lỗi API key không hợp lệ, dừng ngay không thử model khác
+      const errorMsg = (error as Error).message || '';
+      if (errorMsg.includes('API_KEY_INVALID') || errorMsg.includes('API key not valid')) {
+        throw new Error('API Key không hợp lệ. Vui lòng kiểm tra lại API Key của bạn.');
+      }
     }
   }
 
-  throw new Error(`Không thể phân tích ảnh. Lỗi: ${lastError?.message || 'Unknown error'}`);
+  throw new Error(`Không thể phân tích ảnh. Lỗi: ${lastError?.message || 'Unknown error'}`)
 };
 
 // Xử lý và chuẩn hóa dữ liệu trả về

@@ -45,6 +45,10 @@ const App: React.FC = () => {
     const [puzzleImageUrl, setPuzzleImageUrl] = useState<string>('');
     const [puzzleImageName, setPuzzleImageName] = useState<string>('');
 
+    // Pending Document State (file chờ phân tích)
+    const [pendingFile, setPendingFile] = useState<File | null>(null);
+    const [pendingFileName, setPendingFileName] = useState<string>('');
+
     // Game History State
     const [gameHistory, setGameHistory] = useState<SavedGame[]>([]);
 
@@ -61,15 +65,40 @@ const App: React.FC = () => {
     }, []);
 
     const handleSaveApiKey = (key: string, model: string) => {
+        console.log('Saving API Key:', key ? 'Has key' : 'No key', 'Model:', model);
         setStoredApiKey(key);
         setStoredModel(model);
         setApiKey(key);
+        setShowApiKeyModal(false);
     };
 
     // Handlers
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Handler cho upload tài liệu - chỉ lưu file, chưa gọi AI
+    const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        setPendingFile(file);
+        setPendingFileName(file.name);
+    };
+
+    // Handler để xóa file đã chọn
+    const clearPendingFile = () => {
+        setPendingFile(null);
+        setPendingFileName('');
+    };
+
+    // Handler để xóa ảnh puzzle đã chọn
+    const clearPuzzleImage = () => {
+        setPuzzleImageUrl('');
+        setPuzzleImageName('');
+    };
+
+    // Handler để phân tích files - gọi AI khi người dùng bấm nút
+    const handleAnalyzeFiles = async () => {
+        if (!pendingFile && !fileContent.trim()) {
+            setError('Vui lòng tải lên tài liệu hoặc dán nội dung trước khi phân tích');
+            return;
+        }
 
         if (!apiKey) {
             setShowApiKeyModal(true);
@@ -79,30 +108,36 @@ const App: React.FC = () => {
         setLoading(true);
         setScreen('UPLOAD');
         setError('');
-        setLoadingMessage(`Đang đọc file: ${file.name}...`);
 
         try {
-            // Parse file dựa trên loại
-            const parsedFile = await parseFile(file);
-
             let data: ParsedData;
 
-            if (parsedFile.type === 'image') {
-                // Phân tích ảnh bằng Gemini Vision
-                setLoadingMessage('Đang phân tích hình ảnh với AI...');
-                if (!parsedFile.imageBase64 || !parsedFile.imageMimeType) {
-                    throw new Error('Không thể đọc dữ liệu ảnh');
+            if (pendingFile) {
+                // Có file tài liệu được upload
+                setLoadingMessage(`Đang đọc file: ${pendingFile.name}...`);
+                const parsedFile = await parseFile(pendingFile);
+
+                if (parsedFile.type === 'image') {
+                    // Nếu tài liệu là ảnh, phân tích bằng Gemini Vision
+                    setLoadingMessage('Đang phân tích hình ảnh với AI...');
+                    if (!parsedFile.imageBase64 || !parsedFile.imageMimeType) {
+                        throw new Error('Không thể đọc dữ liệu ảnh');
+                    }
+                    data = await parseImageWithGemini(parsedFile.imageBase64, parsedFile.imageMimeType);
+                } else {
+                    // Phân tích text (từ txt, pdf, docx)
+                    setLoadingMessage('Đang phân tích nội dung với AI...');
+                    const text = parsedFile.text || '';
+                    setFileContent(text);
+                    data = await parseContentWithGemini(text);
                 }
-                data = await parseImageWithGemini(parsedFile.imageBase64, parsedFile.imageMimeType);
             } else {
-                // Phân tích text (từ txt, pdf, docx)
+                // Chỉ có text được dán vào
                 setLoadingMessage('Đang phân tích nội dung với AI...');
-                const text = parsedFile.text || '';
-                setFileContent(text);
-                data = await parseContentWithGemini(text);
+                data = await parseContentWithGemini(fileContent);
             }
 
-            // Thêm puzzleImageUrl vào data nếu có
+            // Thêm puzzleImageUrl vào data nếu có ảnh cho game ghép hình
             if (puzzleImageUrl) {
                 data.puzzleImageUrl = puzzleImageUrl;
             }
@@ -112,6 +147,10 @@ const App: React.FC = () => {
             // Lưu game vào lịch sử
             saveGame(data);
             setGameHistory(getGameHistory());
+
+            // Reset pending files
+            setPendingFile(null);
+            setPendingFileName('');
 
             setScreen('EDITOR');
         } catch (err) {
@@ -129,39 +168,9 @@ const App: React.FC = () => {
         }
     };
 
+    // Handler cho nhập text thủ công (giữ lại để hỗ trợ dán nội dung)
     const handleManualText = async () => {
-        if (!apiKey) {
-            setShowApiKeyModal(true);
-            return;
-        }
-
-        setLoading(true);
-        setError('');
-        try {
-            const data = await parseContentWithGemini(fileContent);
-
-            // Thêm puzzleImageUrl vào data nếu có
-            if (puzzleImageUrl) {
-                data.puzzleImageUrl = puzzleImageUrl;
-            }
-
-            setParsedData(data);
-
-            // Lưu game vào lịch sử
-            saveGame(data);
-            setGameHistory(getGameHistory());
-
-            setScreen('EDITOR');
-        } catch (err) {
-            const errorMessage = (err as Error).message;
-            if (errorMessage.includes('429') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
-                setError(`Lỗi API: ${errorMessage}. Vui lòng đổi API Key hoặc thử lại sau.`);
-            } else {
-                setError("Lỗi AI: " + errorMessage);
-            }
-        } finally {
-            setLoading(false);
-        }
+        await handleAnalyzeFiles();
     }
 
     // Handler cho upload ảnh puzzle
@@ -275,51 +284,105 @@ const App: React.FC = () => {
                 <h2 className="text-2xl font-bold text-[#F5F0E1] mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
                     Bắt Đầu Hành Trình
                 </h2>
-                <p className="text-[#8B7355] text-sm mb-6">Tải lên tài liệu hoặc dán nội dung bài học</p>
+                <p className="text-[#8B7355] text-sm mb-6">Tải lên tài liệu và ảnh, sau đó bấm phân tích</p>
 
                 <div className="flex flex-col gap-4">
-                    <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-[#D4AF37]/30 rounded-2xl cursor-pointer hover:bg-[#D4AF37]/5 transition-all duration-300 group">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <div className="w-12 h-12 rounded-full bg-[#D4AF37]/10 flex items-center justify-center mb-3 group-hover:bg-[#D4AF37]/20 transition-colors">
-                                <Upload className="w-6 h-6 text-[#D4AF37]" />
+                    {/* Upload Files Section - 2 ô song song */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Upload Tài liệu */}
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2 mb-2">
+                                <FileText className="w-4 h-4 text-[#D4AF37]" />
+                                <span className="text-[#F5F0E1] text-sm font-medium">Tài liệu bài học</span>
+                                <span className="text-[#D4AF37] text-xs">*Bắt buộc</span>
                             </div>
-                            <p className="text-[#8B7355] text-sm font-medium">Click để tải lên tài liệu</p>
-                            <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
-                                <span className="px-2 py-1 bg-[#2A2318] text-[#D4AF37] text-xs rounded-full border border-[#D4AF37]/30 flex items-center gap-1">
-                                    <FileType className="w-3 h-3" /> PDF
-                                </span>
-                                <span className="px-2 py-1 bg-[#2A2318] text-[#2E8B57] text-xs rounded-full border border-[#2E8B57]/30 flex items-center gap-1">
-                                    <FileText className="w-3 h-3" /> Word
-                                </span>
-                                <span className="px-2 py-1 bg-[#2A2318] text-[#5D3A8C] text-xs rounded-full border border-[#5D3A8C]/30 flex items-center gap-1">
-                                    <Image className="w-3 h-3" /> Ảnh
-                                </span>
-                                <span className="px-2 py-1 bg-[#2A2318] text-[#6B5C45] text-xs rounded-full border border-[#3D3428]">
-                                    TXT
-                                </span>
-                            </div>
+                            {pendingFileName ? (
+                                <div className="flex items-center justify-between p-4 bg-[#2A2318] border border-[#D4AF37]/30 rounded-xl">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center">
+                                            <FileType className="w-5 h-5 text-[#D4AF37]" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[#F5F0E1] text-sm font-medium truncate max-w-[150px]">{pendingFileName}</p>
+                                            <p className="text-[#6B5C45] text-xs">Đã chọn</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={clearPendingFile}
+                                        className="p-2 text-[#6B5C45] hover:text-[#E8A9A9] hover:bg-[#722F37]/20 rounded-lg transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-[#D4AF37]/30 rounded-xl cursor-pointer hover:bg-[#D4AF37]/5 transition-all duration-300 group">
+                                    <Upload className="w-6 h-6 text-[#D4AF37] mb-2 group-hover:scale-110 transition-transform" />
+                                    <p className="text-[#8B7355] text-xs text-center">PDF, Word, TXT, Ảnh</p>
+                                    <input type="file" className="hidden" onChange={handleDocumentUpload} accept={getFileAcceptString()} />
+                                </label>
+                            )}
                         </div>
-                        <input type="file" className="hidden" onChange={handleFileUpload} accept={getFileAcceptString()} />
-                    </label>
+
+                        {/* Upload Ảnh cho Ghép Hình */}
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Puzzle className="w-4 h-4 text-[#722F37]" />
+                                <span className="text-[#F5F0E1] text-sm font-medium">Ảnh ghép hình</span>
+                                <span className="text-[#6B5C45] text-xs">(Tùy chọn)</span>
+                            </div>
+                            {puzzleImageUrl ? (
+                                <div className="flex items-center justify-between p-4 bg-[#2A2318] border border-[#722F37]/30 rounded-xl">
+                                    <div className="flex items-center gap-3">
+                                        <img
+                                            src={puzzleImageUrl}
+                                            alt="Preview"
+                                            className="w-10 h-10 object-cover rounded-lg border border-[#722F37]/50"
+                                        />
+                                        <div>
+                                            <p className="text-[#F5F0E1] text-sm font-medium truncate max-w-[150px]">{puzzleImageName}</p>
+                                            <p className="text-[#6B5C45] text-xs">Đã chọn</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={clearPuzzleImage}
+                                        className="p-2 text-[#6B5C45] hover:text-[#E8A9A9] hover:bg-[#722F37]/20 rounded-lg transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-[#722F37]/30 rounded-xl cursor-pointer hover:bg-[#722F37]/5 transition-all duration-300 group">
+                                    <Image className="w-6 h-6 text-[#722F37] mb-2 group-hover:scale-110 transition-transform" />
+                                    <p className="text-[#8B7355] text-xs text-center">JPG, PNG, WebP</p>
+                                    <input type="file" className="hidden" accept="image/*" onChange={handlePuzzleImageUpload} />
+                                </label>
+                            )}
+                        </div>
+                    </div>
 
                     {/* Divider */}
                     <div className="flex items-center gap-4">
                         <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-[#D4AF37]/30"></div>
-                        <span className="text-[#D4AF37] text-sm uppercase tracking-wider">Hoặc</span>
+                        <span className="text-[#D4AF37] text-sm uppercase tracking-wider">Hoặc dán nội dung</span>
                         <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-[#D4AF37]/30"></div>
                     </div>
 
                     <textarea
-                        className="w-full h-32 bg-[#2A2318] border border-[#3D3428] rounded-xl p-4 text-[#F5F0E1] focus:ring-2 focus:ring-[#D4AF37]/50 focus:border-[#D4AF37] outline-none transition-all resize-none"
+                        className="w-full h-24 bg-[#2A2318] border border-[#3D3428] rounded-xl p-4 text-[#F5F0E1] focus:ring-2 focus:ring-[#D4AF37]/50 focus:border-[#D4AF37] outline-none transition-all resize-none text-sm"
                         style={{ fontFamily: "'Lora', Georgia, serif" }}
                         placeholder="Dán nội dung bài học lịch sử vào đây..."
                         value={fileContent}
                         onChange={(e) => setFileContent(e.target.value)}
                     ></textarea>
 
+                    {/* Nút Phân Tích */}
                     <button
-                        onClick={handleManualText}
-                        disabled={!fileContent.trim() || loading}
+                        onClick={handleAnalyzeFiles}
+                        disabled={(!pendingFile && !fileContent.trim()) || loading}
                         className="w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] hover:from-[#B8860B] hover:to-[#D4AF37] text-[#1A1510] font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-sm shadow-lg shadow-[#D4AF37]/20 hover:shadow-[#D4AF37]/40 hover:-translate-y-0.5"
                         style={{ fontFamily: "'Playfair Display', serif" }}
                     >
@@ -331,7 +394,7 @@ const App: React.FC = () => {
                         ) : (
                             <span className="flex items-center justify-center gap-2">
                                 <Play className="w-5 h-5" />
-                                Tạo Game Ngay
+                                Phân Tích & Tạo Game
                             </span>
                         )}
                     </button>
@@ -341,43 +404,6 @@ const App: React.FC = () => {
                             <p className="text-[#E8A9A9] text-sm">{error}</p>
                         </div>
                     )}
-                </div>
-
-                {/* Upload ảnh cho Game Ghép Hình */}
-                <div className="mt-6 pt-6 border-t border-[#3D3428]">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Puzzle className="w-5 h-5 text-[#722F37]" />
-                        <h3 className="text-[#F5F0E1] font-semibold">Ảnh cho Game Ghép Hình</h3>
-                        <span className="text-[#6B5C45] text-xs">(Tùy chọn)</span>
-                    </div>
-                    <label className="flex items-center justify-center w-full h-24 border-2 border-dashed border-[#722F37]/30 rounded-xl cursor-pointer hover:bg-[#722F37]/5 transition-all duration-300 group">
-                        <div className="flex items-center gap-4">
-                            {puzzleImageUrl ? (
-                                <>
-                                    <img
-                                        src={puzzleImageUrl}
-                                        alt="Preview"
-                                        className="w-16 h-16 object-cover rounded-lg border-2 border-[#722F37]/50"
-                                    />
-                                    <div className="text-left">
-                                        <p className="text-[#722F37] font-medium text-sm">{puzzleImageName}</p>
-                                        <p className="text-[#6B5C45] text-xs">Click để đổi ảnh khác</p>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="w-10 h-10 rounded-full bg-[#722F37]/10 flex items-center justify-center group-hover:bg-[#722F37]/20 transition-colors">
-                                        <Image className="w-5 h-5 text-[#722F37]" />
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="text-[#8B7355] text-sm font-medium">Click để tải ảnh cho Game Ghép Hình</p>
-                                        <p className="text-[#6B5C45] text-xs">Hỗ trợ: JPG, PNG, WebP</p>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                        <input type="file" className="hidden" accept="image/*" onChange={handlePuzzleImageUpload} />
-                    </label>
                 </div>
             </div>
 
