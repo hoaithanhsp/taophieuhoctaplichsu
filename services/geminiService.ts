@@ -215,9 +215,10 @@ Hãy đọc và phân tích nội dung lịch sử trong hình ảnh này. Tríc
 
 // Xử lý và chuẩn hóa dữ liệu trả về
 const normalizeData = (data: ParsedData): ParsedData => {
-  data.events = data.events.map((e, i) => ({ ...e, id: `evt-${i}`, year: Number(e.year) || 0 }));
-  data.questions = data.questions.map((q, i) => ({ ...q, id: `quiz-${i}` }));
-  data.characters = data.characters.map((c, i) => ({ ...c, id: `char-${i}` }));
+  // Đảm bảo các mảng tồn tại trước khi xử lý
+  data.events = (data.events || []).map((e, i) => ({ ...e, id: `evt-${i}`, year: Number(e.year) || 0 }));
+  data.questions = (data.questions || []).map((q, i) => ({ ...q, id: `quiz-${i}` }));
+  data.characters = (data.characters || []).map((c, i) => ({ ...c, id: `char-${i}` }));
   return data;
 };
 
