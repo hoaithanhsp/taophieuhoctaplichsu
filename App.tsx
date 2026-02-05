@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import { parseContentWithGemini, parseImageWithGemini, getStoredApiKey, setStoredApiKey, getStoredModel, setStoredModel } from './services/geminiService';
 import { parseFile, getFileAcceptString, getSupportedFormats } from './services/fileParser';
-import { ParsedData, GameConfig, ScreenState, GameType } from './types';
+import { saveGame, getGameHistory, deleteGame, formatGameDate } from './services/gameHistoryService';
+import { ParsedData, GameConfig, ScreenState, GameType, SavedGame } from './types';
 import MatchGame from './components/MatchGame';
 import TimelineGame from './components/TimelineGame';
 import QuizGame from './components/QuizGame';
@@ -40,7 +41,14 @@ const App: React.FC = () => {
     const [apiKey, setApiKey] = useState<string>('');
     const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
-    // Load API key on mount
+    // Puzzle Image State
+    const [puzzleImageUrl, setPuzzleImageUrl] = useState<string>('');
+    const [puzzleImageName, setPuzzleImageName] = useState<string>('');
+
+    // Game History State
+    const [gameHistory, setGameHistory] = useState<SavedGame[]>([]);
+
+    // Load API key and game history on mount
     useEffect(() => {
         const storedKey = getStoredApiKey();
         if (storedKey) {
@@ -48,6 +56,8 @@ const App: React.FC = () => {
         } else {
             setShowApiKeyModal(true);
         }
+        // Load game history
+        setGameHistory(getGameHistory());
     }, []);
 
     const handleSaveApiKey = (key: string, model: string) => {
@@ -92,7 +102,17 @@ const App: React.FC = () => {
                 data = await parseContentWithGemini(text);
             }
 
+            // Thêm puzzleImageUrl vào data nếu có
+            if (puzzleImageUrl) {
+                data.puzzleImageUrl = puzzleImageUrl;
+            }
+
             setParsedData(data);
+
+            // Lưu game vào lịch sử
+            saveGame(data);
+            setGameHistory(getGameHistory());
+
             setScreen('EDITOR');
         } catch (err) {
             console.error(err);
@@ -119,7 +139,18 @@ const App: React.FC = () => {
         setError('');
         try {
             const data = await parseContentWithGemini(fileContent);
+
+            // Thêm puzzleImageUrl vào data nếu có
+            if (puzzleImageUrl) {
+                data.puzzleImageUrl = puzzleImageUrl;
+            }
+
             setParsedData(data);
+
+            // Lưu game vào lịch sử
+            saveGame(data);
+            setGameHistory(getGameHistory());
+
             setScreen('EDITOR');
         } catch (err) {
             const errorMessage = (err as Error).message;
@@ -132,6 +163,36 @@ const App: React.FC = () => {
             setLoading(false);
         }
     }
+
+    // Handler cho upload ảnh puzzle
+    const handlePuzzleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const result = event.target?.result as string;
+            setPuzzleImageUrl(result);
+            setPuzzleImageName(file.name);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    // Handler để load game đã lưu
+    const loadSavedGame = (game: SavedGame) => {
+        setParsedData(game.parsedData);
+        if (game.parsedData.puzzleImageUrl) {
+            setPuzzleImageUrl(game.parsedData.puzzleImageUrl);
+        }
+        setScreen('MENU');
+    };
+
+    // Handler để xóa game khỏi lịch sử
+    const handleDeleteGame = (gameId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        deleteGame(gameId);
+        setGameHistory(getGameHistory());
+    };
 
     const handleGameFinish = (score: number, max: number) => {
         setGameScore(score);
@@ -281,7 +342,106 @@ const App: React.FC = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Upload ảnh cho Game Ghép Hình */}
+                <div className="mt-6 pt-6 border-t border-[#3D3428]">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Puzzle className="w-5 h-5 text-[#722F37]" />
+                        <h3 className="text-[#F5F0E1] font-semibold">Ảnh cho Game Ghép Hình</h3>
+                        <span className="text-[#6B5C45] text-xs">(Tùy chọn)</span>
+                    </div>
+                    <label className="flex items-center justify-center w-full h-24 border-2 border-dashed border-[#722F37]/30 rounded-xl cursor-pointer hover:bg-[#722F37]/5 transition-all duration-300 group">
+                        <div className="flex items-center gap-4">
+                            {puzzleImageUrl ? (
+                                <>
+                                    <img
+                                        src={puzzleImageUrl}
+                                        alt="Preview"
+                                        className="w-16 h-16 object-cover rounded-lg border-2 border-[#722F37]/50"
+                                    />
+                                    <div className="text-left">
+                                        <p className="text-[#722F37] font-medium text-sm">{puzzleImageName}</p>
+                                        <p className="text-[#6B5C45] text-xs">Click để đổi ảnh khác</p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-10 h-10 rounded-full bg-[#722F37]/10 flex items-center justify-center group-hover:bg-[#722F37]/20 transition-colors">
+                                        <Image className="w-5 h-5 text-[#722F37]" />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-[#8B7355] text-sm font-medium">Click để tải ảnh cho Game Ghép Hình</p>
+                                        <p className="text-[#6B5C45] text-xs">Hỗ trợ: JPG, PNG, WebP</p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                        <input type="file" className="hidden" accept="image/*" onChange={handlePuzzleImageUpload} />
+                    </label>
+                </div>
             </div>
+
+            {/* Games đã tạo trước đó */}
+            {gameHistory.length > 0 && (
+                <div className="glass-card p-6 w-full max-w-2xl rounded-2xl mt-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <BookOpen className="w-5 h-5 text-[#D4AF37]" />
+                            <h3 className="text-xl font-bold text-[#D4AF37]" style={{ fontFamily: "'Playfair Display', serif" }}>
+                                Games Đã Tạo
+                            </h3>
+                            <span className="px-2 py-0.5 bg-[#D4AF37]/10 text-[#D4AF37] text-xs rounded-full border border-[#D4AF37]/30">
+                                {gameHistory.length}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar pr-2">
+                        {gameHistory.map((game) => (
+                            <div
+                                key={game.id}
+                                onClick={() => loadSavedGame(game)}
+                                className="p-4 bg-[#2A2318] hover:bg-[#3D3428] border border-[#3D3428] hover:border-[#D4AF37]/30 rounded-xl cursor-pointer transition-all duration-200 group flex items-center justify-between"
+                            >
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-[#F5F0E1] font-medium truncate group-hover:text-[#D4AF37] transition-colors">
+                                        {game.title}
+                                    </h4>
+                                    <div className="flex items-center gap-3 mt-1 text-xs text-[#6B5C45]">
+                                        <span className="flex items-center gap-1">
+                                            <Clock className="w-3 h-3" />
+                                            {formatGameDate(game.createdAt)}
+                                        </span>
+                                        <span>•</span>
+                                        <span>{game.parsedData.events?.length || 0} sự kiện</span>
+                                        <span>•</span>
+                                        <span>{game.parsedData.questions?.length || 0} câu hỏi</span>
+                                        {game.parsedData.puzzleImageUrl && (
+                                            <>
+                                                <span>•</span>
+                                                <span className="text-[#722F37]">🧩 Có ảnh</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 ml-4">
+                                    <button
+                                        onClick={(e) => handleDeleteGame(game.id, e)}
+                                        className="p-2 text-[#6B5C45] hover:text-[#E8A9A9] hover:bg-[#722F37]/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                        title="Xóa game"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                    <div className="p-2 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Play className="w-4 h-4" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 

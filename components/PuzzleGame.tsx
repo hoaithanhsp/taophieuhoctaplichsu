@@ -11,18 +11,23 @@ interface PuzzleGameProps {
 const PuzzleGame: React.FC<PuzzleGameProps> = ({ data, config, onFinish }) => {
   const [tiles, setTiles] = useState<number[]>([]);
   const [emptyIndex, setEmptyIndex] = useState(0);
-  const [gridSize, setGridSize] = useState(3);
+  const [gridSize] = useState(3); // Luôn dùng 3x3 = 9 ô
   const [isSolved, setIsSolved] = useState(false);
   const [moves, setMoves] = useState(0);
   const [imageUrl, setImageUrl] = useState('');
+  const [noImage, setNoImage] = useState(false);
 
   useEffect(() => {
-    const size = config.difficulty === 'easy' ? 3 : 4;
-    setGridSize(size);
+    const size = 3; // Luôn dùng 3x3 = 9 ô
     const totalTiles = size * size;
 
-    // Use historical themed image
-    const img = data.imageUrl || `https://picsum.photos/600/600?grayscale&blur=1&random=${Math.random()}`;
+    // Chỉ sử dụng ảnh từ puzzleImageUrl đã upload
+    const img = data.puzzleImageUrl;
+    if (!img) {
+      setNoImage(true);
+      return;
+    }
+    setNoImage(false);
     setImageUrl(img);
 
     let initial = Array.from({ length: totalTiles }, (_, i) => i);
@@ -76,6 +81,32 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ data, config, onFinish }) => {
     }
   };
 
+  // Hiển thị thông báo nếu không có ảnh
+  if (noImage) {
+    return (
+      <div
+        className="w-full h-full flex flex-col items-center justify-center p-4"
+        style={{ fontFamily: "'Lora', Georgia, serif" }}
+      >
+        <div className="glass-card p-8 rounded-2xl text-center max-w-md">
+          <Puzzle className="w-16 h-16 text-[#D4AF37] mx-auto mb-4" />
+          <h2
+            className="text-2xl font-bold text-[#D4AF37] mb-4"
+            style={{ fontFamily: "'Playfair Display', serif" }}
+          >
+            Chưa có ảnh cho game
+          </h2>
+          <p className="text-[#8B7355] mb-4">
+            Vui lòng tải lên ảnh cho Game Ghép Hình tại màn hình chính trước khi chơi.
+          </p>
+          <p className="text-[#6B5C45] text-sm">
+            Bấm nút quay lại và tải ảnh ở mục "Ảnh cho Game Ghép Hình"
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="w-full h-full flex flex-col items-center justify-center p-4"
@@ -98,7 +129,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ data, config, onFinish }) => {
         </div>
       </div>
 
-      {/* Puzzle Grid */}
+      {/* Puzzle Grid - Luôn 3x3 = 9 ô */}
       <div
         className="relative bg-[#2A2318] p-3 rounded-xl shadow-2xl border-2 border-[#D4AF37]/30"
         style={{
@@ -139,7 +170,7 @@ const PuzzleGame: React.FC<PuzzleGameProps> = ({ data, config, onFinish }) => {
                 filter: 'sepia(20%)'
               }}
             >
-              {config.difficulty === 'easy' && !isSolved && (
+              {!isSolved && (
                 <span
                   className="bg-[#1A1510]/80 text-[#D4AF37] text-xs px-2 py-0.5 rounded-br-lg font-bold"
                   style={{ fontFamily: "'Cinzel', serif" }}

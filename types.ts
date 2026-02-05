@@ -33,6 +33,14 @@ export interface ParsedData {
   questions: QuizQuestion[];
   characters: CharacterInfo[];
   imageUrl?: string; // For puzzle
+  puzzleImageUrl?: string; // Ảnh riêng cho game ghép hình
+}
+
+export interface SavedGame {
+  id: string;
+  title: string;
+  createdAt: number;
+  parsedData: ParsedData; // Lưu toàn bộ data cho cả 5 loại game
 }
 
 export interface GameConfig {
